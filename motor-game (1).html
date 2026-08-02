@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Motor Rush — Trail</title>
+<style>
+  :root{
+    --bg-1:#050014; --bg-2:#1a0a2e;
+    --neon-1:#00F5D4; --neon-2:#FF3EA5; --neon-3:#FFD23F;
+    --ice:#F2EFFF; --dim:#9C8FC2;
+  }
+  *{box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent;}
+  html,body{ margin:0; padding:0; width:100%; height:100%; overflow:hidden;
+    background:linear-gradient(180deg, #1a0a2e, #050014 65%);
+    font-family:'Segoe UI', Arial, sans-serif; color:var(--ice); touch-action:none;}
+  canvas{ display:block; width:100%; height:100%; }
+
+  .hud{ position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between;
+    padding:14px 16px; z-index:3; pointer-events:none;}
+  .hud-left{ display:flex; flex-direction:column; gap:4px; }
+  .level-tag{ font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim);}
+  .level-name{ font-size:16px; font-weight:800; }
+  .hearts{ display:flex; gap:6px; margin-top:2px;}
+  .heart{ width:18px; height:18px; filter:drop-shadow(0 0 6px rgba(255,62,165,.7));}
+
+  .progress-wrap{ position:absolute; top:14px; left:50%; transform:translateX(-50%); width:46%;
+    max-width:220px; z-index:3; pointer-events:none;}
+  .progress-bar{ height:8px; border-radius:8px; background:rgba(255,255,255,0.12); overflow:hidden; }
+  .progress-fill{ height:100%; background:linear-gradient(90deg,var(--neon-1),var(--neon-3)); width:0%; transition:width .1s linear; }
+
+  .overlay{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:22px; z-index:5;
+    background:radial-gradient(circle at 50% 40%, rgba(21,0,41,.6), rgba(5,0,20,.94)); backdrop-filter:blur(3px);
+    overflow-y:auto;}
+  .overlay.hidden{ display:none; }
+  .title{ font-size:36px; font-weight:900; letter-spacing:-.02em; margin:0 0 6px;
+    background:linear-gradient(120deg, var(--neon-1), var(--neon-2) 60%, var(--neon-3));
+    -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .subtitle{ font-size:13px; color:var(--dim); max-width:290px; line-height:1.7; margin:0 0 20px;}
+  .subtitle b{ color:var(--ice); }
+  .controls-row{ display:flex; gap:12px; margin-bottom:22px;}
+  .ctrl{ display:flex; flex-direction:column; align-items:center; gap:6px; font-size:10.5px; color:var(--dim);}
+  .ctrl .key{ width:50px; height:38px; border-radius:10px; background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; font-size:18px;}
+
+  .level-list{ display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px; margin-bottom:6px;}
+  .level-btn{ display:flex; align-items:center; gap:12px; padding:13px 16px; border-radius:14px;
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); cursor:pointer; color:var(--ice);}
+  .level-btn:active{ transform:scale(.97); }
+  .level-btn.locked{ opacity:0.4; }
+  .level-num{ width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-weight:900; font-size:15px; background:linear-gradient(150deg,var(--neon-1),var(--neon-3)); color:#08031A; flex-shrink:0;}
+  .level-btn.locked .level-num{ background:rgba(255,255,255,0.1); color:var(--dim);}
+  .level-info{ text-align:left; flex:1; }
+  .level-info b{ display:block; font-size:14px; }
+  .level-info span{ font-size:11px; color:var(--dim); }
+
+  .btn{ border:none; cursor:pointer; padding:15px 38px; border-radius:100px; font-size:15px; font-weight:800;
+    color:#08031A; background:linear-gradient(120deg, var(--neon-1), var(--neon-3));
+    box-shadow:0 14px 30px -10px rgba(0,245,212,.5); margin-top:8px;}
+  .btn:active{ transform:scale(.95); }
+  .btn-ghost{ background:transparent; color:var(--ice); border:1px solid rgba(255,255,255,0.25); box-shadow:none; margin-top:10px;}
+
+  .go-label{ font-size:26px; font-weight:900; margin:4px 0 6px; }
+  .go-sub{ font-size:13px; color:var(--dim); margin-bottom:22px; }
+  .backlink{ position:absolute; top:14px; left:16px; z-index:6; color:var(--dim); text-decoration:none; font-size:20px;}
+</style>
+</head>
+<body>
+<a class="backlink" href="index.html">←</a>
+<canvas id="game"></canvas>
+
+<div class="hud">
+  <div class="hud-left">
+    <div class="level-tag" id="levelTag">Level 1</div>
+    <div class="level-name" id="levelName">Trail Awal</div>
+    <div class="hearts" id="hearts"></div>
+  </div>
+  <div></div>
+</div>
+<div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div></div>
+
+<div class="overlay" id="menuScreen">
+  <div class="title">MOTOR RUSH</div>
+  <p class="subtitle">Pilih level. Lompati <b>jurang</b> dan hindari <b>batu</b> di jalur trail sampai garis finish. Nyawa cuma 3 per percobaan!</p>
+  <div class="level-list" id="levelList"></div>
+</div>
+
+<div class="overlay hidden" id="startScreen">
+  <div class="title" id="introLevelName">LEVEL 1</div>
+  <p class="subtitle">Kendarai motor otomatis maju. <b>Lompat</b> buat lewatin jurang & batu. Kalau jatuh ke jurang atau nabrak, nyawa berkurang.</p>
+  <div class="controls-row">
+    <div class="ctrl"><div class="key">↑ / tap</div>lompat</div>
+  </div>
+  <button class="btn" id="startBtn">MULAI</button>
+  <button class="btn btn-ghost" id="backToMenu1">Pilih Level Lain</button>
+</div>
+
+<div class="overlay hidden" id="overScreen">
+  <div class="go-label" id="overLabel">Game Over</div>
+  <div class="go-sub" id="overSub">Nyawa habis</div>
+  <button class="btn" id="retryBtn">ULANGI LEVEL</button>
+  <button class="btn btn-ghost" id="backToMenu2">Pilih Level Lain</button>
+</div>
+
+<div class="overlay hidden" id="winScreen">
+  <div class="go-label" id="winLabel">Level Selesai! 🎉</div>
+  <div class="go-sub">Kerja bagus, lanjut ke level berikutnya?</div>
+  <button class="btn" id="nextBtn">LEVEL BERIKUTNYA</button>
+  <button class="btn btn-ghost" id="backToMenu3">Pilih Level Lain</button>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const heartsEl = document.getElementById('hearts');
+  const levelTag = document.getElementById('levelTag');
+  const levelName = document.getElementById('levelName');
+  const progressFill = document.getElementById('progressFill');
+  const menuScreen = document.getElementById('menuScreen');
+  const startScreen = document.getElementById('startScreen');
+  const overScreen = document.getElementById('overScreen');
+  const winScreen = document.getElementById('winScreen');
+  const levelListEl = document.getElementById('levelList');
+  const introLevelName = document.getElementById('introLevelName');
+  const overLabel = document.getElementById('overLabel');
+  const overSub = document.getElementById('overSub');
+  const winLabel = document.getElementById('winLabel');
+
+  let W,H,DPR;
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio||1,2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W*DPR; canvas.height = H*DPR;
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const HEART_SVG = `<svg class="heart" viewBox="0 0 24 24" fill="#FF3EA5"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.3 2 4.8 5.4 4.1c2-.4 3.9.4 5 2 .1.1.2.1.3 0 1.1-1.6 3-2.4 5-2 3.4.7 5 4.2 3.4 7.6C19.5 16.4 12 21 12 21z"/></svg>`;
+
+  const LEVELS = [
+    { name:'Trail Awal', length:2600, speed:5.2, hillAmp:34, hillFreq:0.0055, pitChance:0.28, rockChance:0.30, minGap:300 },
+    { name:'Bukit Berbatu', length:3400, speed:6.0, hillAmp:46, hillFreq:0.0065, pitChance:0.34, rockChance:0.36, minGap:270 },
+    { name:'Tebing Curam', length:4200, speed:6.8, hillAmp:58, hillFreq:0.0075, pitChance:0.4, rockChance:0.4, minGap:250 },
+    { name:'Jalur Ekstrem', length:5000, speed:7.6, hillAmp:66, hillFreq:0.0085, pitChance:0.46, rockChance:0.44, minGap:230 },
+  ];
+  let unlockedCount = 1;
+
+  function buildLevelList(){
+    levelListEl.innerHTML = '';
+    LEVELS.forEach((lvl, i)=>{
+      const locked = i >= unlockedCount;
+      const btn = document.createElement('div');
+      btn.className = 'level-btn' + (locked ? ' locked':'');
+      btn.innerHTML = `<div class="level-num">${locked?'🔒':(i+1)}</div>
+        <div class="level-info"><b>${lvl.name}</b><span>${locked?'Selesaikan level sebelumnya':'Level '+(i+1)}</span></div>`;
+      if(!locked){
+        btn.addEventListener('click', ()=> openIntro(i));
+      }
+      levelListEl.appendChild(btn);
+    });
+  }
+
+  let currentLevelIdx = 0;
+  let level, groundBase, terrainDefs, obstacles, finishX;
+  let bike, distance, lives, invuln, particles;
+  let running = false;
+  let lastTime = 0;
+
+  function renderHearts(){
+    heartsEl.innerHTML='';
+    for(let i=0;i<3;i++){
+      const d=document.createElement('div');
+      d.innerHTML = HEART_SVG;
+      d.style.opacity = i<lives ? '1':'0.15';
+      heartsEl.appendChild(d.firstChild);
+    }
+  }
+
+  function openIntro(idx){
+    currentLevelIdx = idx;
+    level = LEVELS[idx];
+    introLevelName.textContent = 'LEVEL ' + (idx+1);
+    menuScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    winScreen.classList.add('hidden');
+    overScreen.classList.add('hidden');
+  }
+
+  function generateLevel(){
+    groundBase = H*0.66;
+    obstacles = [];
+    finishX = level.length;
+    let d = 380;
+    while(d < level.length - 200){
+      const r = Math.random();
+      if(r < level.pitChance){
+        const width = 95 + Math.random()*55;
+        obstacles.push({ type:'pit', start:d, end:d+width });
+        d += width + level.minGap + Math.random()*160;
+      } else if(r < level.pitChance + level.rockChance){
+        const size = 30 + Math.random()*22;
+        obstacles.push({ type:'rock', x:d, w:size, h:size });
+        d += level.minGap*0.75 + Math.random()*160;
+      } else {
+        d += level.minGap*0.6 + Math.random()*140;
+      }
+    }
+  }
+
+  function terrainHeightAt(x){
+    const amp = level.hillAmp, freq = level.hillFreq;
+    return groundBase - amp*Math.sin(x*freq) - amp*0.4*Math.sin(x*freq*2.3+1.1);
+  }
+
+  function isPitAt(x){
+    for(const o of obstacles){ if(o.type==='pit' && x >= o.start && x <= o.end) return o; }
+    return null;
+  }
+
+  const bikeScreenX = ()=> W*0.28;
+  const BIKE_W = 52, BIKE_H = 30;
+
+  function resetRun(){
+    generateLevel();
+    distance = 0;
+    lives = 3; invuln = 0;
+    particles = [];
+    bike = { y: terrainHeightAt(0)-BIKE_H, vy:0, angle:0, grounded:true, wheelRot:0 };
+    renderHearts();
+    levelTag.textContent = 'Level ' + (currentLevelIdx+1);
+    levelName.textContent = level.name;
+    progressFill.style.width = '0%';
+  }
+
+  function jump(){
+    if(bike.grounded){
+      bike.vy = -12.5;
+      bike.grounded = false;
+    }
+  }
+  window.addEventListener('keydown', e=>{
+    if((e.code==='Space'||e.code==='ArrowUp') && running){ e.preventDefault(); jump(); }
+  });
+  canvas.addEventListener('pointerdown', ()=>{ if(running) jump(); });
+
+  function spawnParticles(x,y,color,count){
+    for(let i=0;i<count;i++){
+      const a = Math.random()*Math.PI*2;
+      const s = 1+Math.random()*4;
+      particles.push({x,y,vx:Math.cos(a)*s, vy:Math.sin(a)*s-2, r:2+Math.random()*3, life:400+Math.random()*250, color});
+    }
+  }
+
+  function loseLife(reason, worldX){
+    lives--; renderHearts(); invuln = 1300;
+    spawnParticles(bikeScreenX(), bike.y+BIKE_H/2, '#FF3EA5', 16);
+    if(reason==='pit'){
+      // relocate bike safely ahead of the pit, on solid ground
+      let safeX = worldX + 40;
+      while(isPitAt(safeX)) safeX += 30;
+      distance = safeX;
+      bike.y = terrainHeightAt(distance) - BIKE_H;
+      bike.vy = 0; bike.grounded = true;
+    }
+    if(lives<=0){ endRun(false); }
+  }
+
+  function endRun(won){
+    running = false;
+    if(won){
+      if(currentLevelIdx+1 >= unlockedCount) unlockedCount = Math.min(LEVELS.length, currentLevelIdx+2);
+      winLabel.textContent = 'Level Selesai! 🎉';
+      winScreen.classList.remove('hidden');
+      const nextBtn = document.getElementById('nextBtn');
+      nextBtn.style.display = (currentLevelIdx+1 < LEVELS.length) ? 'inline-block':'none';
+    } else {
+      overLabel.textContent = 'Nyawa Habis';
+      overSub.textContent = 'Jarak tempuh: ' + Math.floor(distance) + ' / ' + level.length;
+      overScreen.classList.remove('hidden');
+    }
+  }
+
+  function startRun(){
+    resetRun();
+    startScreen.classList.add('hidden');
+    overScreen.classList.add('hidden');
+    winScreen.classList.add('hidden');
+    running = true;
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startRun);
+  document.getElementById('retryBtn').addEventListener('click', startRun);
+  document.getElementById('nextBtn').addEventListener('click', ()=>{
+    currentLevelIdx = Math.min(LEVELS.length-1, currentLevelIdx+1);
+    openIntro(currentLevelIdx);
+  });
+  [['backToMenu1',startScreen],['backToMenu2',overScreen],['backToMenu3',winScreen]].forEach(([id,scr])=>{
+    document.getElementById(id).addEventListener('click', ()=>{
+      scr.classList.add('hidden');
+      buildLevelList();
+      menuScreen.classList.remove('hidden');
+      running = false;
+    });
+  });
+
+  function loop(now){
+    if(!running) return;
+    const dt = Math.min(32, now-lastTime);
+    lastTime = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt){
+    distance += level.speed * dt * 0.06;
+    if(invuln>0) invuln -= dt;
+    progressFill.style.width = Math.min(100, (distance/level.length*100)) + '%';
+
+    if(distance >= finishX){ endRun(true); return; }
+
+    const bikeCenterX = distance;
+    const pit = isPitAt(bikeCenterX);
+
+    bike.vy += 0.62;
+    bike.y += bike.vy;
+
+    if(!pit){
+      const groundY = terrainHeightAt(bikeCenterX) - BIKE_H;
+      if(bike.y >= groundY){
+        bike.y = groundY; bike.vy = 0; bike.grounded = true;
+      } else {
+        bike.grounded = false;
+      }
+    } else {
+      bike.grounded = false;
+      if(bike.y > H + 60){
+        loseLife('pit', bikeCenterX);
+      }
+    }
+
+    // angle from local slope
+    const h1 = terrainHeightAt(bikeCenterX-20), h2 = terrainHeightAt(bikeCenterX+20);
+    const targetAngle = bike.grounded ? Math.atan2(h2-h1, 40) : bike.angle*0.96;
+    bike.angle += (targetAngle - bike.angle) * 0.18;
+    bike.wheelRot += level.speed*0.14;
+
+    // rock collisions
+    for(const o of obstacles){
+      if(o.type!=='rock' || o.hit) continue;
+      const rockTop = terrainHeightAt(o.x) - o.h;
+      const overlapX = Math.abs(bikeCenterX - o.x) < (BIKE_W/2 + o.w/2);
+      const overlapY = (bike.y+BIKE_H) > rockTop;
+      if(overlapX && overlapY && invuln<=0){
+        o.hit = true;
+        loseLife('rock', bikeCenterX);
+      }
+    }
+
+    for(const p of particles){ p.vy+=0.15; p.x+=p.vx; p.y+=p.vy; p.life-=dt; }
+    particles = particles.filter(p=>p.life>0);
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const camOffset = distance - bikeScreenX();
+
+    // parallax hills backdrop
+    ctx.fillStyle = 'rgba(255,255,255,0.035)';
+    for(let i=0;i<6;i++){
+      const hx = (i*280 - (camOffset*0.15 % 280));
+      ctx.beginPath(); ctx.arc(hx, H*0.6, 130, Math.PI, 0); ctx.fill();
+    }
+
+    // terrain path
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    const step = 8;
+    for(let sx=0; sx<=W; sx+=step){
+      const wx = camOffset + sx;
+      const pit = isPitAt(wx);
+      const gy = pit ? H+80 : terrainHeightAt(wx);
+      ctx.lineTo(sx, gy);
+    }
+    ctx.lineTo(W,H);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0,groundBase-80,0,H);
+    grad.addColorStop(0,'#1a0f33');
+    grad.addColorStop(1,'#0a0518');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,245,212,0.55)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for(let sx=0; sx<=W; sx+=step){
+      const wx = camOffset + sx;
+      const pit = isPitAt(wx);
+      const gy = pit ? H+80 : terrainHeightAt(wx);
+      if(sx===0) ctx.moveTo(sx,gy); else ctx.lineTo(sx,gy);
+    }
+    ctx.stroke();
+
+    // finish flag
+    const finishScreenX = finishX - camOffset;
+    if(finishScreenX > -60 && finishScreenX < W+60){
+      const fy = terrainHeightAt(finishX);
+      ctx.fillStyle = '#FFD23F';
+      ctx.fillRect(finishScreenX-2, fy-70, 4, 70);
+      ctx.fillStyle = '#FF3EA5';
+      ctx.beginPath();
+      ctx.moveTo(finishScreenX+2, fy-70);
+      ctx.lineTo(finishScreenX+34, fy-58);
+      ctx.lineTo(finishScreenX+2, fy-46);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // rocks
+    for(const o of obstacles){
+      if(o.type!=='rock') continue;
+      const sx = o.x - camOffset;
+      if(sx < -60 || sx > W+60) continue;
+      const rockY = terrainHeightAt(o.x);
+      ctx.fillStyle = o.hit ? 'rgba(74,58,92,0.3)' : '#4a3a5c';
+      ctx.strokeStyle = '#FF3EA5';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(sx-o.w/2, rockY);
+      ctx.lineTo(sx-o.w*0.15, rockY-o.h);
+      ctx.lineTo(sx+o.w*0.35, rockY-o.h*0.9);
+      ctx.lineTo(sx+o.w/2, rockY);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+
+    // particles
+    for(const p of particles){
+      ctx.globalAlpha = Math.max(0,p.life/650);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    drawBike();
+  }
+
+  function drawBike(){
+    ctx.save();
+    if(invuln>0 && Math.floor(invuln/100)%2===0) ctx.globalAlpha = 0.35;
+    const bx = bikeScreenX(), by = bike.y + BIKE_H/2;
+    ctx.translate(bx, by);
+    ctx.rotate(bike.angle);
+
+    const wheelR = 11;
+    const rearX = -18, frontX = 18, wheelY = 12;
+
+    // wheel spin helper
+    function drawWheel(wx){
+      ctx.save();
+      ctx.translate(wx, wheelY);
+      ctx.rotate(bike.wheelRot);
+      ctx.fillStyle = '#0d0620';
+      ctx.beginPath(); ctx.arc(0,0,wheelR,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#00F5D4'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(0,0,wheelR,0,Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,245,212,0.7)'; ctx.lineWidth = 1.4;
+      for(let i=0;i<4;i++){
+        const a = i*Math.PI/2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*2, Math.sin(a)*2);
+        ctx.lineTo(Math.cos(a)*wheelR, Math.sin(a)*wheelR);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // frame (triangular chassis between wheels)
+    ctx.fillStyle = '#FF3EA5';
+    ctx.shadowColor = '#FF3EA5'; ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(rearX, wheelY);
+    ctx.lineTo(-4, -6);
+    ctx.lineTo(6, -10);
+    ctx.lineTo(frontX, wheelY);
+    ctx.lineTo(2, wheelY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // seat
+    ctx.fillStyle = '#1a0f2e';
+    ctx.fillRect(-10, -12, 16, 5);
+
+    // handlebar + front fork
+    ctx.strokeStyle = '#FFD23F'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(frontX-2, wheelY-2);
+    ctx.lineTo(frontX+4, -14);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(frontX-2, -14); ctx.lineTo(frontX+10, -14);
+    ctx.stroke();
+
+    // exhaust hint
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(rearX+2, 2); ctx.lineTo(rearX-10, 6); ctx.stroke();
+
+    // rider
+    ctx.fillStyle = '#00F5D4';
+    // torso (leans back a bit)
+    ctx.save();
+    ctx.translate(-2,-12);
+    ctx.rotate(-0.35);
+    ctx.fillRect(-4,-16,8,17);
+    ctx.restore();
+    // head/helmet
+    ctx.beginPath();
+    ctx.arc(-6, -30, 7, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#0d0620';
+    ctx.beginPath(); ctx.arc(-8,-31,2.4,0,Math.PI*2); ctx.fill();
+    // arm to handlebar
+    ctx.strokeStyle = '#00F5D4'; ctx.lineWidth = 4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-4,-22); ctx.lineTo(frontX-2, -13); ctx.stroke();
+    // leg
+    ctx.beginPath(); ctx.moveTo(-2,-8); ctx.lineTo(6, wheelY-6); ctx.stroke();
+
+    drawWheel(rearX);
+    drawWheel(frontX);
+
+    ctx.restore();
+  }
+
+  buildLevelList();
+})();
+</script>
+</body>
+</html>
