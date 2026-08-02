@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Catur</title>
+<style>
+  :root{
+    --bg-1:#050014; --bg-2:#150029;
+    --neon-1:#00F5D4; --neon-2:#FF3EA5; --neon-3:#FFD23F; --neon-4:#7C4DFF;
+    --ice:#F2EFFF; --dim:#9C8FC2;
+    --light:#EDE6FF; --dark:#3A2A5C;
+  }
+  *{box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent;}
+  html,body{ margin:0; min-height:100vh;
+    background:radial-gradient(ellipse at 50% 0%, #1D0640, var(--bg-1) 65%);
+    font-family:'Segoe UI', Arial, sans-serif; color:var(--ice);}
+
+  .wrap{ max-width:460px; margin:0 auto; padding:16px 16px 40px; display:flex; flex-direction:column; align-items:center;}
+  .backlink{ align-self:flex-start; color:var(--dim); text-decoration:none; font-size:20px; margin-bottom:6px;}
+
+  .status{
+    width:100%; text-align:center; padding:12px; border-radius:14px; margin-bottom:14px;
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+    font-weight:700; font-size:14px; letter-spacing:0.02em;
+  }
+  .status .turn-dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle;}
+
+  #board{
+    display:grid; grid-template-columns:repeat(8,1fr); width:100%; max-width:420px; aspect-ratio:1/1;
+    border-radius:12px; overflow:hidden; border:2px solid rgba(255,255,255,0.12);
+    box-shadow:0 20px 50px -20px rgba(0,0,0,0.6);
+  }
+  .sq{ position:relative; display:flex; align-items:center; justify-content:center; font-size:min(7.5vw, 32px); cursor:pointer; }
+  .sq.light{ background:var(--light); }
+  .sq.dark{ background:var(--dark); }
+  .sq.selected{ box-shadow:inset 0 0 0 3px var(--neon-1); }
+  .sq .dot{ position:absolute; width:26%; height:26%; border-radius:50%; background:rgba(0,245,212,0.55); }
+  .sq .dot.capture{ width:100%; height:100%; border-radius:0; background:rgba(255,62,165,0.35); box-shadow:inset 0 0 0 3px rgba(255,62,165,0.85);}
+  .sq.check{ box-shadow:inset 0 0 0 3px var(--neon-2); }
+  .piece-w{ color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.5), 0 0 8px rgba(255,255,255,0.3); }
+  .piece-b{ color:#0d0620; text-shadow:0 1px 1px rgba(255,255,255,0.15); }
+
+  .legend{ display:flex; gap:16px; margin-top:14px; font-size:11px; color:var(--dim);}
+  .legend span{ display:flex; align-items:center; gap:5px;}
+  .legend i{ width:10px; height:10px; border-radius:50%; display:inline-block;}
+
+  .overlay{ position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24px; z-index:5;
+    background:radial-gradient(circle at 50% 40%, rgba(21,0,41,.6), rgba(5,0,20,.94)); backdrop-filter:blur(3px);}
+  .overlay.hidden{ display:none; }
+  .title{ font-size:36px; font-weight:900; letter-spacing:-.02em; margin:0 0 6px;
+    background:linear-gradient(120deg, var(--neon-4), var(--neon-2) 60%, var(--neon-3));
+    -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .subtitle{ font-size:13.5px; color:var(--dim); max-width:300px; line-height:1.75; margin:0 0 26px; text-align:left;}
+  .subtitle b{ color:var(--ice); }
+  .subtitle ul{ padding-left:18px; margin:8px 0 0;}
+  .btn{ border:none; cursor:pointer; padding:16px 42px; border-radius:100px; font-size:16px; font-weight:800;
+    color:#08031A; background:linear-gradient(120deg, var(--neon-1), var(--neon-3));
+    box-shadow:0 14px 30px -10px rgba(0,245,212,.5);}
+  .btn:active{ transform:scale(.95); }
+  .btn-outline{ margin-top:12px; background:transparent; color:var(--ice); border:1px solid rgba(255,255,255,0.25); box-shadow:none;}
+  .go-label{ font-size:22px; font-weight:900; margin:6px 0 22px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="backlink" href="index.html">←</a>
+
+  <div class="status" id="statusBox">
+    <span class="turn-dot" id="turnDot" style="background:#fff;"></span>
+    <span id="statusText">Giliran Putih</span>
+  </div>
+
+  <div id="board"></div>
+
+  <div class="legend">
+    <span><i style="background:rgba(0,245,212,0.7)"></i> langkah kosong</span>
+    <span><i style="background:rgba(255,62,165,0.7)"></i> bisa makan</span>
+  </div>
+</div>
+
+<div class="overlay" id="startScreen">
+  <div class="title">CATUR</div>
+  <div class="subtitle">
+    Main <b>2 pemain bergantian</b> di HP/laptop yang sama.
+    <ul>
+      <li>Ketuk buah catur untuk lihat langkah yang bisa dilakukan</li>
+      <li>Titik <b>hijau</b> = langkah kosong, kotak <b>pink</b> = bisa makan buah lawan</li>
+      <li>Putih jalan duluan, lalu gantian</li>
+      <li>Skak = raja lawan terancam, harus segera diamankan</li>
+      <li>Catatan: <b>kastling & en passant belum didukung</b> di versi ini</li>
+    </ul>
+  </div>
+  <button class="btn" id="startBtn">MULAI MAIN</button>
+</div>
+
+<div class="overlay hidden" id="overScreen">
+  <div class="go-label" id="overText">Skakmat!</div>
+  <button class="btn" id="retryBtn">MAIN LAGI</button>
+</div>
+
+<script>
+(function(){
+  const boardEl = document.getElementById('board');
+  const statusText = document.getElementById('statusText');
+  const turnDot = document.getElementById('turnDot');
+  const startScreen = document.getElementById('startScreen');
+  const overScreen = document.getElementById('overScreen');
+  const overText = document.getElementById('overText');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+
+  const GLYPH = {
+    w:{k:'♔',q:'♕',r:'♖',b:'♗',n:'♘',p:'♙'},
+    b:{k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'}
+  };
+
+  let board, turn, selected, legalTargets;
+
+  function initBoard(){
+    const empty = ()=>Array(8).fill(null);
+    board = [empty(),empty(),empty(),empty(),empty(),empty(),empty(),empty()];
+    const backRow = ['r','n','b','q','k','b','n','r'];
+    for(let c=0;c<8;c++){
+      board[0][c] = {type:backRow[c], color:'b'};
+      board[1][c] = {type:'p', color:'b'};
+      board[6][c] = {type:'p', color:'w'};
+      board[7][c] = {type:backRow[c], color:'w'};
+    }
+    turn = 'w';
+    selected = null;
+    legalTargets = [];
+  }
+
+  function cloneBoard(b){
+    return b.map(row=>row.map(cell=>cell?{...cell}:null));
+  }
+
+  function inBounds(r,c){ return r>=0&&r<8&&c>=0&&c<8; }
+
+  function pseudoMoves(b, r, c){
+    const piece = b[r][c];
+    if(!piece) return [];
+    const moves = [];
+    const dir = piece.color==='w' ? -1 : 1;
+    const addLine = (dr,dc)=>{
+      let rr=r+dr, cc=c+dc;
+      while(inBounds(rr,cc)){
+        if(!b[rr][cc]){ moves.push({r:rr,c:cc}); }
+        else { if(b[rr][cc].color!==piece.color) moves.push({r:rr,c:cc}); break; }
+        rr+=dr; cc+=dc;
+      }
+    };
+    switch(piece.type){
+      case 'p': {
+        if(inBounds(r+dir,c) && !b[r+dir][c]){
+          moves.push({r:r+dir,c});
+          const startRow = piece.color==='w'?6:1;
+          if(r===startRow && !b[r+2*dir][c]) moves.push({r:r+2*dir,c});
+        }
+        for(const dc of [-1,1]){
+          const rr=r+dir, cc=c+dc;
+          if(inBounds(rr,cc) && b[rr][cc] && b[rr][cc].color!==piece.color){
+            moves.push({r:rr,c:cc});
+          }
+        }
+        break;
+      }
+      case 'n': {
+        const deltas = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+        for(const [dr,dc] of deltas){
+          const rr=r+dr, cc=c+dc;
+          if(inBounds(rr,cc) && (!b[rr][cc] || b[rr][cc].color!==piece.color)) moves.push({r:rr,c:cc});
+        }
+        break;
+      }
+      case 'b': [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>addLine(dr,dc)); break;
+      case 'r': [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>addLine(dr,dc)); break;
+      case 'q': [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>addLine(dr,dc)); break;
+      case 'k': {
+        for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+          if(dr===0&&dc===0) continue;
+          const rr=r+dr, cc=c+dc;
+          if(inBounds(rr,cc) && (!b[rr][cc] || b[rr][cc].color!==piece.color)) moves.push({r:rr,c:cc});
+        }
+        break;
+      }
+    }
+    return moves;
+  }
+
+  function findKing(b, color){
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+      if(b[r][c] && b[r][c].type==='k' && b[r][c].color===color) return {r,c};
+    }
+    return null;
+  }
+
+  function isSquareAttacked(b, r, c, byColor){
+    for(let rr=0;rr<8;rr++){
+      for(let cc=0;cc<8;cc++){
+        const p = b[rr][cc];
+        if(p && p.color===byColor){
+          const mv = pseudoMoves(b, rr, cc);
+          if(mv.some(m=>m.r===r && m.c===c)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function isInCheck(b, color){
+    const k = findKing(b, color);
+    if(!k) return false;
+    return isSquareAttacked(b, k.r, k.c, color==='w'?'b':'w');
+  }
+
+  function legalMoves(b, r, c){
+    const piece = b[r][c];
+    if(!piece) return [];
+    const pseudo = pseudoMoves(b, r, c);
+    return pseudo.filter(m=>{
+      const nb = cloneBoard(b);
+      nb[m.r][m.c] = nb[r][c];
+      nb[r][c] = null;
+      return !isInCheck(nb, piece.color);
+    });
+  }
+
+  function anyLegalMoves(b, color){
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+      if(b[r][c] && b[r][c].color===color){
+        if(legalMoves(b,r,c).length>0) return true;
+      }
+    }
+    return false;
+  }
+
+  function render(){
+    boardEl.innerHTML = '';
+    const check = isInCheck(board, turn);
+    const kingPos = check ? findKing(board, turn) : null;
+
+    for(let r=0;r<8;r++){
+      for(let c=0;c<8;c++){
+        const sq = document.createElement('div');
+        sq.className = 'sq ' + (((r+c)%2===0) ? 'light':'dark');
+        if(selected && selected.r===r && selected.c===c) sq.classList.add('selected');
+        if(kingPos && kingPos.r===r && kingPos.c===c) sq.classList.add('check');
+
+        const piece = board[r][c];
+        if(piece){
+          const span = document.createElement('span');
+          span.className = piece.color==='w' ? 'piece-w' : 'piece-b';
+          span.textContent = GLYPH[piece.color][piece.type];
+          sq.appendChild(span);
+        }
+
+        const target = legalTargets.find(t=>t.r===r && t.c===c);
+        if(target){
+          const dot = document.createElement('div');
+          dot.className = 'dot' + (piece ? ' capture' : '');
+          sq.appendChild(dot);
+        }
+
+        sq.addEventListener('click', ()=>onSquareClick(r,c));
+        boardEl.appendChild(sq);
+      }
+    }
+
+    turnDot.style.background = turn==='w' ? '#fff' : '#0d0620';
+    turnDot.style.boxShadow = turn==='w' ? '0 0 8px #fff' : '0 0 8px #7C4DFF';
+    statusText.textContent = (turn==='w'?'Giliran Putih':'Giliran Hitam') + (check ? ' — SKAK!' : '');
+  }
+
+  function onSquareClick(r,c){
+    const piece = board[r][c];
+
+    if(selected){
+      const isTarget = legalTargets.some(t=>t.r===r && t.c===c);
+      if(isTarget){
+        movePiece(selected.r, selected.c, r, c);
+        selected = null; legalTargets = [];
+        render();
+        checkEndConditions();
+        return;
+      }
+    }
+
+    if(piece && piece.color===turn){
+      selected = {r,c};
+      legalTargets = legalMoves(board, r, c);
+    } else {
+      selected = null; legalTargets = [];
+    }
+    render();
+  }
+
+  function movePiece(fr,fc,tr,tc){
+    const piece = board[fr][fc];
+    board[tr][tc] = piece;
+    board[fr][fc] = null;
+    // auto-promote pawn to queen
+    if(piece.type==='p' && (tr===0 || tr===7)){
+      piece.type = 'q';
+    }
+    turn = turn==='w' ? 'b' : 'w';
+  }
+
+  function checkEndConditions(){
+    const hasMoves = anyLegalMoves(board, turn);
+    if(!hasMoves){
+      const inCheck = isInCheck(board, turn);
+      if(inCheck){
+        const winner = turn==='w' ? 'Hitam' : 'Putih';
+        overText.textContent = 'Skakmat! ' + winner + ' menang 🎉';
+      } else {
+        overText.textContent = 'Seri (stalemate)';
+      }
+      overScreen.classList.remove('hidden');
+    }
+  }
+
+  function startGame(){
+    initBoard();
+    startScreen.classList.add('hidden');
+    overScreen.classList.add('hidden');
+    render();
+  }
+  startBtn.addEventListener('click', startGame);
+  retryBtn.addEventListener('click', startGame);
+
+  initBoard();
+  render();
+})();
+</script>
+</body>
+</html>

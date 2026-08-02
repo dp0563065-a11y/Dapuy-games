@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dapuy Games — Pilih Game</title>
+<style>
+  :root{
+    --bg-1:#050014; --bg-2:#150029;
+    --neon-1:#00F5D4; --neon-2:#FF3EA5; --neon-3:#FFD23F; --neon-4:#7C4DFF;
+    --ice:#F2EFFF; --dim:#9C8FC2; --card:#150A28;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    background:radial-gradient(ellipse at 50% 0%, #1D0640, var(--bg-1) 65%);
+    font-family:'Segoe UI', Arial, sans-serif;
+    color:var(--ice);
+    display:flex; justify-content:center;
+    padding:40px 18px 60px;
+  }
+  .wrap{ width:100%; max-width:460px; }
+  .head{ text-align:center; margin-bottom:34px; }
+  .head h1{
+    font-size:36px; font-weight:900; margin:0 0 6px; letter-spacing:-0.02em;
+    background:linear-gradient(120deg, var(--neon-1), var(--neon-2) 60%, var(--neon-3));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .head p{ color:var(--dim); font-size:13.5px; margin:0; }
+
+  .grid{ display:flex; flex-direction:column; gap:14px; }
+  .card{
+    display:flex; align-items:center; gap:16px;
+    padding:18px; border-radius:18px;
+    background:linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015));
+    border:1px solid rgba(255,255,255,0.10);
+    text-decoration:none; color:var(--ice);
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .card:active{ transform:scale(0.97); }
+  .icon{
+    width:58px; height:58px; border-radius:16px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px;
+  }
+  .ic1{ background:linear-gradient(150deg,var(--neon-2),#FF8FCB); }
+  .ic2{ background:linear-gradient(150deg,var(--neon-1),#8CFFF0); }
+  .ic3{ background:linear-gradient(150deg,var(--neon-3),#FFE896); }
+  .ic4{ background:linear-gradient(150deg,var(--neon-4),#C4A8FF); }
+  .info{ flex:1; min-width:0; }
+  .info h3{ margin:0 0 3px; font-size:17px; font-weight:800; }
+  .info p{ margin:0; font-size:12.5px; color:var(--dim); line-height:1.4; }
+  .arrow{ color:var(--dim); font-size:18px; }
+
+  .foot{ text-align:center; margin-top:30px; font-size:11px; color:var(--dim); opacity:0.6; letter-spacing:0.08em; text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>DAPUY GAMES</h1>
+    <p>Pilih game yang mau kamu mainkan</p>
+  </div>
+
+  <div class="grid">
+    <a class="card" href="slice-game.html">
+      <div class="icon ic1">🔪</div>
+      <div class="info">
+        <h3>Slice Rush</h3>
+        <p>Iris objek yang beterbangan, hindari bom, kejar combo tertinggi.</p>
+      </div>
+      <div class="arrow">›</div>
+    </a>
+
+    <a class="card" href="motor-game.html">
+      <div class="icon ic2">🏍️</div>
+      <div class="info">
+        <h3>Motor Rush</h3>
+        <p>Lompat dan menunduk hindari rintangan di jalan, makin jauh makin cepat.</p>
+      </div>
+      <div class="arrow">›</div>
+    </a>
+
+    <a class="card" href="block-blast.html">
+      <div class="icon ic3">🧩</div>
+      <div class="info">
+        <h3>Block Blast</h3>
+        <p>Susun balok di papan 8x8, penuhi baris/kolom biar hilang dan dapat skor.</p>
+      </div>
+      <div class="arrow">›</div>
+    </a>
+
+    <a class="card" href="chess.html">
+      <div class="icon ic4">♟️</div>
+      <div class="info">
+        <h3>Catur</h3>
+        <p>Main catur 2 pemain bergantian di satu HP/laptop yang sama.</p>
+      </div>
+      <div class="arrow">›</div>
+    </a>
+  </div>
+
+  <div class="foot">dibuat dengan &hearts;</div>
+</div>
+</body>
+</html>
