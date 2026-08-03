@@ -15,13 +15,12 @@
     background:#020010; font-family:'Segoe UI', Arial, sans-serif; color:var(--ice);}
 
   #rotateWrap{ position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
-  @media (orientation:portrait){
-    #rotateWrap{
-      position:absolute; top:0; left:100%;
-      width:100vh; height:100vw;
-      transform-origin: 0 0; transform: rotate(90deg);
-    }
-  }
+
+  .rotate-hint{ position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:8;
+    display:none; align-items:center; gap:8px; padding:8px 16px; border-radius:100px;
+    background:rgba(255,210,63,0.16); border:1px solid rgba(255,210,63,0.4); font-size:11px; color:#FFD23F;
+    pointer-events:none;}
+  .rotate-hint.show{ display:flex; }
 
   canvas{ display:block; width:100%; height:100%; touch-action:none; }
 
@@ -104,6 +103,7 @@
 <body>
 <div id="rotateWrap">
   <a class="backlink" href="index.html">←</a>
+  <div class="rotate-hint" id="rotateHint">🔄 Putar HP ke landscape buat area main lebih luas</div>
   <canvas id="game"></canvas>
 
   <div class="hud">
@@ -172,6 +172,8 @@
 
 <script>
 (function(){
+  const rotateWrap = document.getElementById('rotateWrap');
+  const rotateHint = document.getElementById('rotateHint');
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const hpFill = document.getElementById('hpFill');
@@ -311,21 +313,21 @@
   document.getElementById('backFromSkin').addEventListener('click', ()=>showScreen(mainMenu));
   document.getElementById('backToMenuFromOver').addEventListener('click', ()=>{ refreshCoinDisplays(); showScreen(mainMenu); });
 
-  // ---------- ORIENTATION-AWARE COORDINATES ----------
-  function isPortraitLock(){ return window.matchMedia('(orientation: portrait)').matches; }
-  function toGame(clientX, clientY){
-    if(isPortraitLock()) return { x: clientY, y: window.innerWidth - clientX };
-    return { x: clientX, y: clientY };
-  }
+  // ---------- ORIENTATION ----------
+  // Forcing a CSS rotation proved unreliable across mobile browsers (layout
+  // and touch coordinates could drift apart). Instead we just play in
+  // whatever orientation the device is in, and nudge the player to rotate
+  // manually for a wider view via a small on-screen hint.
+  function isPortrait(){ return window.innerHeight > window.innerWidth; }
 
   let W,H,DPR;
   function resize(){
     DPR = Math.min(window.devicePixelRatio||1,2);
-    if(isPortraitLock()){ W = window.innerHeight; H = window.innerWidth; }
-    else { W = window.innerWidth; H = window.innerHeight; }
+    W = window.innerWidth; H = window.innerHeight;
     canvas.width = W*DPR; canvas.height = H*DPR;
     ctx.setTransform(DPR,0,0,DPR,0,0);
     layoutTouchUI();
+    rotateHint.classList.toggle('show', isPortrait() && isTouch);
   }
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', ()=>setTimeout(resize,150));
@@ -377,7 +379,7 @@
   window.addEventListener('keydown', e=>{ keys[e.code]=true; });
   window.addEventListener('keyup', e=>{ keys[e.code]=false; });
   let mouse = { x:0, y:0, down:false };
-  canvas.addEventListener('mousemove', e=>{ const g=toGame(e.clientX,e.clientY); mouse.x=g.x; mouse.y=g.y; });
+  canvas.addEventListener('mousemove', e=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
   canvas.addEventListener('mousedown', ()=>{ mouse.down=true; });
   window.addEventListener('mouseup', ()=>{ mouse.down=false; });
 
@@ -388,7 +390,7 @@
   canvas.addEventListener('touchstart', e=>{
     e.preventDefault();
     for(const t of e.changedTouches){
-      const g = toGame(t.clientX, t.clientY);
+      const g = { x:t.clientX, y:t.clientY };
       if(joyTouchId===null && dist(g.x,g.y,joyBase.x,joyBase.y) < 72){ joyTouchId=t.identifier; updateJoyVec(g); }
       else if(jetTouchId===null && dist(g.x,g.y,jetBase.x,jetBase.y) < 58){ jetTouchId=t.identifier; jetActive=true; jetBtn.classList.add('active'); }
       else if(aimTouchId===null && g.x > W*0.42){ aimTouchId=t.identifier; aimStart=g; aimActive=true; aimVec={x:1,y:0}; }
@@ -397,7 +399,7 @@
   canvas.addEventListener('touchmove', e=>{
     e.preventDefault();
     for(const t of e.changedTouches){
-      const g = toGame(t.clientX, t.clientY);
+      const g = { x:t.clientX, y:t.clientY };
       if(t.identifier===joyTouchId) updateJoyVec(g);
       else if(t.identifier===aimTouchId){
         const dx=g.x-aimStart.x, dy=g.y-aimStart.y;
