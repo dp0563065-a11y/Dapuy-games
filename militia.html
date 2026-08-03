@@ -39,11 +39,11 @@
   .coin-val{ font-size:11.5px; color:#FFD23F; margin-top:2px; display:flex; align-items:center; gap:4px; justify-content:flex-end;}
 
   .joy{ position:absolute; width:112px; height:112px; border-radius:50%; background:rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.16); z-index:3; display:none;}
+    border:1px solid rgba(255,255,255,0.16); z-index:3; display:none; pointer-events:none;}
   .joy-knob{ position:absolute; width:46px; height:46px; border-radius:50%; background:rgba(0,245,212,0.55);
     top:33px; left:33px; box-shadow:0 0 14px rgba(0,245,212,0.6); pointer-events:none;}
   .jetbtn{ position:absolute; width:78px; height:78px; border-radius:50%; z-index:3;
-    background:rgba(255,210,63,0.16); border:1px solid rgba(255,210,63,0.4); display:none;
+    background:rgba(255,210,63,0.16); border:1px solid rgba(255,210,63,0.4); display:none; pointer-events:none;
     align-items:center; justify-content:center; font-size:28px;}
   .jetbtn.active{ background:rgba(255,210,63,0.42); }
 
@@ -171,6 +171,18 @@
 </div>
 
 <script>
+window.addEventListener('error', function(e){
+  var box = document.getElementById('errBox');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'errBox';
+    box.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(120,0,0,0.95);color:#fff;font:12px monospace;padding:16px;overflow:auto;white-space:pre-wrap;';
+    document.body.appendChild(box);
+  }
+  box.textContent += 'ERROR: ' + e.message + '\ndi baris ' + e.lineno + ':' + e.colno + '\n\n';
+});
+</script>
+<script>
 (function(){
   const rotateWrap = document.getElementById('rotateWrap');
   const rotateHint = document.getElementById('rotateHint');
@@ -238,7 +250,15 @@
       const card = document.createElement('div');
       card.className = 'map-card ' + m.cls;
       card.innerHTML = `<div class="map-icon">${m.icon}</div><div><b>${m.name}</b><span>${m.tagline}</span></div>`;
-      card.addEventListener('click', ()=>{ currentMapId = m.id; startGame(); });
+      let handled = false;
+      const pick = ()=>{
+        if(handled) return;
+        handled = true;
+        currentMapId = m.id;
+        startGame();
+      };
+      card.addEventListener('click', pick);
+      card.addEventListener('touchend', (e)=>{ e.preventDefault(); pick(); }, {passive:false});
       el.appendChild(card);
     });
   }
@@ -318,6 +338,11 @@
   // and touch coordinates could drift apart). Instead we just play in
   // whatever orientation the device is in, and nudge the player to rotate
   // manually for a wider view via a small on-screen hint.
+  // ---------- FIXED TOUCH CONTROL ZONES ----------
+  // Declared before resize()/layoutTouchUI() run for the first time so
+  // there's no temporal-dead-zone crash on initial page load.
+  let joyBase = {x:95,y:0}, jetBase = {x:225,y:0};
+
   function isPortrait(){ return window.innerHeight > window.innerWidth; }
 
   let W,H,DPR;
@@ -365,7 +390,6 @@
   }
 
   // ---------- FIXED TOUCH CONTROL ZONES ----------
-  let joyBase = {x:95,y:0}, jetBase = {x:225,y:0};
   function layoutTouchUI(){
     if(!isTouch) return;
     joyBase = { x:95, y:H-100 };
@@ -563,19 +587,34 @@
     showScreen(overScreen);
   }
 
+  function reportError(err){
+    let box = document.getElementById('errBox');
+    if(!box){
+      box = document.createElement('div');
+      box.id = 'errBox';
+      box.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(120,0,0,0.95);color:#fff;font:12px monospace;padding:16px;overflow:auto;white-space:pre-wrap;';
+      document.body.appendChild(box);
+    }
+    box.textContent += 'ERROR: ' + (err && err.message ? err.message : err) + '\n' + (err && err.stack ? err.stack : '') + '\n\n';
+  }
+
   function startGame(){
-    resize();
-    buildWorld();
-    buildPlayer();
-    bullets=[]; enemyBullets=[]; enemies=[]; particles=[]; coinPickups=[];
-    wave=1; score=0; runCoins=0; waveTransition=0;
-    joyTouchId=null; jetTouchId=null; aimTouchId=null;
-    joyVec={x:0,y:0}; jetActive=false; aimActive=false;
-    allScreens.forEach(s=>s.classList.add('hidden'));
-    startWave();
-    running = true;
-    lastTime = performance.now();
-    requestAnimationFrame(loop);
+    try{
+      resize();
+      buildWorld();
+      buildPlayer();
+      bullets=[]; enemyBullets=[]; enemies=[]; particles=[]; coinPickups=[];
+      wave=1; score=0; runCoins=0; waveTransition=0;
+      joyTouchId=null; jetTouchId=null; aimTouchId=null;
+      joyVec={x:0,y:0}; jetActive=false; aimActive=false;
+      allScreens.forEach(s=>s.classList.add('hidden'));
+      startWave();
+      running = true;
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    } catch(err){
+      reportError(err);
+    }
   }
   document.getElementById('retryBtn').addEventListener('click', startGame);
 
@@ -593,7 +632,7 @@
     let moveX=0;
     if(keys['KeyA']||keys['ArrowLeft']) moveX-=1;
     if(keys['KeyD']||keys['ArrowRight']) moveX+=1;
-    if(isTouch) moveX = joyVec.x;
+    if(isTouch && joyTouchId!==null) moveX = joyVec.x;
     player.vx += moveX*0.9;
     player.vx = Math.max(-6, Math.min(6, player.vx));
     if(Math.abs(moveX)>0.1) player.facing = Math.sign(moveX);
@@ -744,23 +783,27 @@
     }
     ctx.globalAlpha = 1;
 
-    for(const en of enemies){ drawDoodle(en.x, en.y, en.w, en.h, '#FF3EA5', null); }
+    for(const en of enemies){ drawDoodle(en.x, en.y, en.w, en.h, '#FF3EA5', null, en.vx<0?-1:1); }
 
     if(!(player.invuln>0 && Math.floor(player.invuln/90)%2===0)){
-      drawDoodle(player.x, player.y, player.w, player.h, getSkinColor(), player.aimAngle);
+      drawDoodle(player.x, player.y, player.w, player.h, getSkinColor(), player.aimAngle, player.facing);
     }
   }
 
-  function drawDoodle(x,y,w,h,color,aimAngle){
+  function drawDoodle(x,y,w,h,color,aimAngle,facing){
     ctx.save();
     ctx.translate(x,y);
     ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.save();
+    ctx.scale(facing||1, 1);
     ctx.beginPath();
     ctx.moveTo(0,-h*0.35); ctx.lineTo(-7,0);
     ctx.moveTo(0,-h*0.35); ctx.lineTo(7,0);
     ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0,-h*0.35); ctx.lineTo(0,-h*0.75); ctx.stroke();
     ctx.beginPath(); ctx.arc(0,-h*0.85,h*0.14,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    // arm/gun drawn in absolute aim direction (not mirrored, so aiming stays accurate)
     const angle = aimAngle!==null ? aimAngle : 0;
     ctx.beginPath();
     ctx.moveTo(0,-h*0.65);
