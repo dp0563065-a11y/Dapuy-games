@@ -12,7 +12,7 @@
   }
   *{box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent;}
   html,body{ margin:0; padding:0; width:100%; height:100%; overflow:hidden;
-    background:#020010; font-family:'Segoe UI', Arial, sans-serif; color:var(--ice); touch-action:none;}
+    background:#020010; font-family:'Segoe UI', Arial, sans-serif; color:var(--ice);}
 
   #rotateWrap{ position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
   @media (orientation:portrait){
@@ -23,7 +23,7 @@
     }
   }
 
-  canvas{ display:block; width:100%; height:100%; }
+  canvas{ display:block; width:100%; height:100%; touch-action:none; }
 
   .hud{ position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:flex-start;
     padding:14px 16px; z-index:3; pointer-events:none;}
@@ -49,7 +49,7 @@
   .jetbtn.active{ background:rgba(255,210,63,0.42); }
 
   .overlay{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding:20px; z-index:6;
+    text-align:center; padding:20px; z-index:6; touch-action:manipulation;
     background:radial-gradient(circle at 50% 40%, rgba(20,0,40,.65), rgba(2,0,16,.95)); backdrop-filter:blur(3px);
     overflow-y:auto;}
   .overlay.hidden{ display:none; }
@@ -67,13 +67,13 @@
   .menu-actions{ display:flex; flex-direction:column; gap:10px; width:100%; max-width:280px; }
   .btn{ border:none; cursor:pointer; padding:14px 30px; border-radius:100px; font-size:14.5px; font-weight:800;
     color:#08031A; background:linear-gradient(120deg, var(--neon-1), var(--neon-3));
-    box-shadow:0 14px 30px -10px rgba(0,245,212,.5);}
+    box-shadow:0 14px 30px -10px rgba(0,245,212,.5); touch-action:manipulation;}
   .btn:active{ transform:scale(.95); }
   .btn-ghost{ background:transparent; color:var(--ice); border:1px solid rgba(255,255,255,0.25); box-shadow:none;}
 
   .grid-cards{ display:flex; flex-direction:column; gap:10px; width:100%; max-width:320px; margin-bottom:8px;}
   .map-card{ display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:16px; cursor:pointer;
-    border:1px solid rgba(255,255,255,0.14); text-align:left; color:var(--ice);}
+    border:1px solid rgba(255,255,255,0.14); text-align:left; color:var(--ice); touch-action:manipulation;}
   .map-forest{ background:linear-gradient(120deg, rgba(40,140,90,0.28), rgba(20,60,40,0.15)); }
   .map-mountain{ background:linear-gradient(120deg, rgba(120,150,190,0.24), rgba(50,60,80,0.15)); }
   .map-cave{ background:linear-gradient(120deg, rgba(124,77,255,0.24), rgba(20,10,40,0.2)); }
@@ -88,7 +88,7 @@
   .shop-info{ flex:1; text-align:left; min-width:0;}
   .shop-info b{ display:block; font-size:13.5px;}
   .shop-info span{ font-size:11px; color:var(--dim); line-height:1.4; display:block;}
-  .shop-btn{ border:none; cursor:pointer; padding:8px 14px; border-radius:100px; font-size:11.5px; font-weight:800; flex-shrink:0;}
+  .shop-btn{ border:none; cursor:pointer; padding:8px 14px; border-radius:100px; font-size:11.5px; font-weight:800; flex-shrink:0; touch-action:manipulation;}
   .shop-btn.buy{ background:linear-gradient(120deg,var(--neon-1),var(--neon-3)); color:#08031A;}
   .shop-btn.equip{ background:rgba(255,255,255,0.12); color:var(--ice); border:1px solid rgba(255,255,255,0.25);}
   .shop-btn.equipped{ background:rgba(0,245,212,0.25); color:var(--neon-1); border:1px solid rgba(0,245,212,0.5);}
